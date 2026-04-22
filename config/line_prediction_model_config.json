@@ -1,0 +1,111 @@
+{
+    "data": {
+        "sp100_path": "data/sp100.csv",
+        "hsi_path": "data/hsi.csv"
+    },
+    "sp100_output": {
+        "directory": "data/task2/sp100",
+        "val_prediction_file": "sp100_factor_val_predictions.csv",
+        "test_prediction_file": "sp100_factor_test_predictions.csv",
+        "metrics_file": "sp100_factor_metrics.json",
+        "val_nav_plot": "sp100_factor_val_nav.png",
+        "test_nav_plot": "sp100_factor_test_nav.png",
+        "val_return_compare_plot": "sp100_factor_val_return_compare.png",
+        "test_return_compare_plot": "sp100_factor_test_return_compare.png"
+    },
+    "hsi_output": {
+        "directory": "data/task2/hsi",
+        "val_prediction_file": "hsi_factor_val_predictions.csv",
+        "test_prediction_file": "hsi_factor_test_predictions.csv",
+        "metrics_file": "hsi_factor_metrics.json",
+        "val_nav_plot": "hsi_factor_val_nav.png",
+        "test_nav_plot": "hsi_factor_test_nav.png",
+        "val_return_compare_plot": "hsi_factor_val_return_compare.png",
+        "test_return_compare_plot": "hsi_factor_test_return_compare.png"
+    },
+    "target": {
+        "horizon_days": 20,
+        "direction_threshold": 0.0
+    },
+    "features": {
+        "n_factors": 5,
+        "factor_windows": [
+            5,
+            10,
+            20,
+            40
+        ],
+        "vol_windows": [
+            5,
+            20
+        ],
+        "index_mom_windows": [
+            5,
+            10,
+            20
+        ],
+        "min_history_days": 20
+    },
+    "split": {
+        "train_ratio": 0.5,
+        "val_ratio": 0.25,
+        "test_ratio": 0.25
+    },
+    "rolling_oos": {
+        "enabled": true,
+        "window_size": 120,
+        "min_train_size": 80
+    },
+    "model": {
+        "solver": "liblinear",
+        "max_iter": 2000,
+        "random_state": 42,
+        "selection_metric": "f1",
+        "grid": {
+            "penalty": [
+                "l1",
+                "l2"
+            ],
+            "C": [
+                0.01,
+                0.1,
+                1.0,
+                10.0,
+                100.0
+            ],
+            "class_weight": [
+                null,
+                "balanced"
+            ]
+        }
+    },
+    "regression_model": {
+        "type": "ridge",
+        "grid": {
+            "alpha": [
+                0.01,
+                0.1,
+                1.0,
+                10.0,
+                100.0
+            ]
+        }
+    },
+    "decision": {
+        "probability_threshold": 0.5
+    },
+    "split_ranges": {
+        "train": [
+            0,
+            100
+        ],
+        "val": [
+            101,
+            200
+        ],
+        "test": [
+            201,
+            248
+        ]
+    }
+}

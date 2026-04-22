@@ -3,6 +3,9 @@ from src.task1.feature_analysis import FeatureAnalysis
 from src.task1.cluster_kmeans import ClusterKMeans
 from src.task1.cluster_agglomerative import ClusterAgglomerative
 
+from src.task2.average_return import AverageReturn
+
+
 if __name__ == "__main__":
 
     # 1.1 特征分析
@@ -33,3 +36,9 @@ if __name__ == "__main__":
         2, 20), show_plot=False)
     agglomerative.fit_agglomerative(optimal_k=9)
     # agglomerative.visualize_clusters() # 可视化聚类结果
+
+    # 2.1 平均收益率计算
+    avg_return = AverageReturn()
+    avg_return.compute_average_return()
+    avg_return.plot_average_return(show_plot=False)
+    avg_return.save_average_return(avg_return.index_returns)
