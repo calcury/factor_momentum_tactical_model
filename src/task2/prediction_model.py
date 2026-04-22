@@ -9,6 +9,8 @@ from sklearn.linear_model import Ridge
 from sklearn.model_selection import ParameterGrid
 from sklearn.preprocessing import StandardScaler
 
+CONFIG_PATH = "config/prediction_model_config.json"
+
 
 class LinePredictionPipeline:
     def __init__(self, cfg, split_ranges=None):
@@ -17,9 +19,9 @@ class LinePredictionPipeline:
         self.split_sizes = None
 
     @classmethod
-    def from_config_path(cls, config_path="line_prediction_model_config.json", split_ranges=None):
-        json_path = Path(__file__).with_name(config_path)
-        cfg = json.loads(json_path.read_text(encoding="utf-8"))
+    def from_config_path(cls, config_path=CONFIG_PATH, split_ranges=None):
+        with open(config_path, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
         return cls(cfg, split_ranges=split_ranges)
 
     def set_split_ranges(self, train_range, val_range, test_range):
@@ -397,48 +399,25 @@ class LinePredictionPipeline:
             results.append(self.run_market(name, data))
         return results
 
-
-def get_xy(df):
-    return LinePredictionPipeline.get_xy(df)
-
-
-def calc_metrics(df):
-    return LinePredictionPipeline.calc_metrics(df)
-
-
-def train_models(df_tr, df_val, cfg):
-    return LinePredictionPipeline(cfg).train_models(df_tr, df_val)
-
-
-def eval_data(data, start, end, is_rolling, reg_p, win=0, min_t=0):
-    return LinePredictionPipeline.eval_data(data, start, end, is_rolling, reg_p, win, min_t)
-
-
-def run_market(name, returns, cfg, split_ranges=None):
-    return LinePredictionPipeline(cfg, split_ranges=split_ranges).run_market(name, returns)
+    def print_results(self, results):
+        for res in results:
+            print(f"=== {res['market']} ===")
+            print(
+                f"Split (Train/Val/Test): {res['split'][0]}/{res['split'][1]}/{res['split'][2]}"
+            )
+            print(f"Best Reg Params: {res['reg_params']}")
+            print(f"Strategy Metrics (Val) : {res['val_strategy']}")
+            print(f"Strategy Metrics (Test): {res['test_strategy']}\n")
 
 
 if __name__ == "__main__":
-    pipeline = LinePredictionPipeline.from_config_path(
-        "line_prediction_model_config.json")
+    pipeline = LinePredictionPipeline.from_config_path()
 
     cfg_ranges = pipeline.cfg.get("split_ranges")
-    if cfg_ranges is not None:
-        pipeline.set_split_ranges(
-            tuple(cfg_ranges["train"]),
-            tuple(cfg_ranges["val"]),
-            tuple(cfg_ranges["test"]),
-        )
-    elif pipeline.split_ranges is None:
-        raise ValueError(
-            "请为 LinePredictionPipeline 提供 split_ranges，"
-            "例如 set_split_ranges((0, 50), (50, 80), (80, None))"
-        )
-
-    for res in pipeline.run_all_markets():
-        print(f"=== {res['market']} ===")
-        print(
-            f"Split (Train/Val/Test): {res['split'][0]}/{res['split'][1]}/{res['split'][2]}")
-        print(f"Best Reg Params: {res['reg_params']}")
-        print(f"Strategy Metrics (Val) : {res['val_strategy']}")
-        print(f"Strategy Metrics (Test): {res['test_strategy']}\n")
+    pipeline.set_split_ranges(
+        tuple(cfg_ranges["train"]),
+        tuple(cfg_ranges["val"]),
+        tuple(cfg_ranges["test"])
+    )
+    results = pipeline.run_all_markets()
+    pipeline.print_results(results)

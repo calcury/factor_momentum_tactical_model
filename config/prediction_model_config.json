@@ -4,7 +4,7 @@
         "hsi_path": "data/hsi.csv"
     },
     "sp100_output": {
-        "directory": "data/task2/sp100",
+        "directory": "result/task2/prediction_result_sp100",
         "val_prediction_file": "sp100_factor_val_predictions.csv",
         "test_prediction_file": "sp100_factor_test_predictions.csv",
         "metrics_file": "sp100_factor_metrics.json",
@@ -14,7 +14,7 @@
         "test_return_compare_plot": "sp100_factor_test_return_compare.png"
     },
     "hsi_output": {
-        "directory": "data/task2/hsi",
+        "directory": "result/task2/prediction_result_hsi",
         "val_prediction_file": "hsi_factor_val_predictions.csv",
         "test_prediction_file": "hsi_factor_test_predictions.csv",
         "metrics_file": "hsi_factor_metrics.json",

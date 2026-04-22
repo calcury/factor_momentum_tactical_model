@@ -5,6 +5,9 @@ from src.task1.cluster_agglomerative import ClusterAgglomerative
 
 from src.task2.average_return import AverageReturn
 from src.task2.variance_interpret import VarianceInterpretation
+from src.task2.prediction_model import LinePredictionPipeline
+
+CONFIG_PATH = "config/prediction_model_config.json"
 
 
 if __name__ == "__main__":
@@ -44,7 +47,18 @@ if __name__ == "__main__":
     avg_return.plot_average_return(show_plot=False)
     avg_return.save_average_return(avg_return.index_returns)
 
-    # 2.2 方差解释率分析
+    # 2.2.0 方差解释率分析
     variance_interp = VarianceInterpretation()
     variance_interp.load_returns_from_config()
     variance_interp.compute_and_plot()
+
+    # 2.2 预测模型
+    pipeline = LinePredictionPipeline.from_config_path()
+    cfg_ranges = pipeline.cfg.get("split_ranges")
+    pipeline.set_split_ranges(
+        tuple(cfg_ranges["train"]),
+        tuple(cfg_ranges["val"]),
+        tuple(cfg_ranges["test"])
+    )
+    results = pipeline.run_all_markets()
+    pipeline.print_results(results)
