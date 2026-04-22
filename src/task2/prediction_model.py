@@ -25,32 +25,17 @@ class LinePredictionPipeline:
         return cls(cfg, split_ranges=split_ranges)
 
     def set_split_ranges(self, train_range, val_range, test_range):
-        # 兼容两种输入：
-        # 1) 传区间元组: (0, 50), (50, 80), (80, None)
-        # 2) 传样本数量: 50, 30, None 或 50, 30, 20
-        if all(isinstance(x, (int, np.integer)) or x is None for x in [train_range, val_range, test_range]):
-            self.set_split_sizes(train_range, val_range, test_range)
-            return
-
         self.split_sizes = None
         self.split_ranges = {
             "train": train_range,
             "val": val_range,
-            "test": test_range,
+            "test": test_range
         }
 
     def set_split_sizes(self, train_size, val_size, test_size=None):
-        if train_size is None or val_size is None:
-            raise ValueError("train_size 和 val_size 不能为空")
-
         train_size = int(train_size)
         val_size = int(val_size)
         test_size = None if test_size is None else int(test_size)
-
-        if train_size <= 0 or val_size <= 0:
-            raise ValueError("train_size 和 val_size 必须为正整数")
-        if test_size is not None and test_size <= 0:
-            raise ValueError("test_size 必须为正整数，或设置为 None 表示用剩余样本")
 
         self.split_ranges = None
         self.split_sizes = {
@@ -61,25 +46,13 @@ class LinePredictionPipeline:
 
     @staticmethod
     def _normalize_range(n_total, rg, name):
-        if rg is None or len(rg) != 2:
-            raise ValueError(f"{name} 区间必须是长度为 2 的元组/列表，例如 (0, 50)")
-
         start, end = rg
         if start is None:
             start = 0
         if end is None:
             end = n_total
-
         start = int(start)
         end = int(end)
-
-        if start < 0 or end < 0:
-            raise ValueError(f"{name} 区间不能为负数: {(start, end)}")
-        if start >= end:
-            raise ValueError(f"{name} 区间必须满足 start < end: {(start, end)}")
-        if end > n_total:
-            raise ValueError(f"{name} 区间超出数据范围: {(start, end)}，总长度为 {n_total}")
-
         return start, end
 
     @staticmethod
@@ -108,24 +81,11 @@ class LinePredictionPipeline:
             else:
                 used += test_size
 
-            if test_size <= 0:
-                raise ValueError(
-                    "按当前样本数量切分后 test_size <= 0，请检查 set_split_sizes 参数")
-            if train_size + val_size + test_size > n_total:
-                raise ValueError(
-                    f"split 大小超出可用样本数: train+val+test={train_size + val_size + test_size}, n_total={n_total}"
-                )
-
             ranges = {
                 "train": (0, train_size),
                 "val": (train_size, train_size + val_size),
                 "test": (train_size + val_size, train_size + val_size + test_size),
             }
-
-        if ranges is None:
-            raise ValueError(
-                "未提供切分信息。请使用 set_split_ranges(区间) 或 set_split_sizes(大小)。"
-            )
 
         if isinstance(ranges, (list, tuple)) and len(ranges) == 3:
             train_rg, val_rg, test_rg = ranges
@@ -133,20 +93,10 @@ class LinePredictionPipeline:
             train_rg = ranges.get("train")
             val_rg = ranges.get("val")
             test_rg = ranges.get("test")
-        else:
-            raise ValueError(
-                "split_ranges 格式错误。支持 {'train':(a,b),'val':(c,d),'test':(e,f)} "
-                "或 ((a,b),(c,d),(e,f))"
-            )
 
         tr_s, tr_e = self._normalize_range(n_total, train_rg, "train")
         va_s, va_e = self._normalize_range(n_total, val_rg, "val")
         te_s, te_e = self._normalize_range(n_total, test_rg, "test")
-
-        if not (tr_e <= va_s <= va_e <= te_s <= te_e):
-            raise ValueError(
-                "区间必须按时间先后且不重叠，要求满足: train_end <= val_start <= val_end <= test_start <= test_end"
-            )
 
         return {
             "train": (tr_s, tr_e),
@@ -271,7 +221,6 @@ class LinePredictionPipeline:
         )
         df["target"] = (df["target_return"] > thresh).astype(int)
 
-        # 切分区间始终按原始 CSV 行号（即 returns 的总行数）解释。
         n_total = len(returns)
         resolved_ranges = self._resolve_split_ranges(n_total, split_ranges)
         tr_s, tr_e = resolved_ranges["train"]
@@ -318,9 +267,6 @@ class LinePredictionPipeline:
         tr_df = dataset.iloc[tr_s_v:tr_e_v]
         val_df = dataset.iloc[va_s_v:va_e_v]
         te_df = dataset.iloc[te_s_v:te_e_v]
-
-        if tr_df.empty or val_df.empty or te_df.empty:
-            raise ValueError("train/val/test 中存在空区间，请检查 split_ranges")
 
         reg_best = self.train_models(tr_df, val_df)
         roll = self.cfg.get("rolling_oos", {})
