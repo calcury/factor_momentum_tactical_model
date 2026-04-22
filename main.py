@@ -4,6 +4,7 @@ from src.task1.cluster_kmeans import ClusterKMeans
 from src.task1.cluster_agglomerative import ClusterAgglomerative
 
 from src.task2.average_return import AverageReturn
+from src.task2.variance_interpret import VarianceInterpretation
 
 
 if __name__ == "__main__":
@@ -42,3 +43,8 @@ if __name__ == "__main__":
     avg_return.compute_average_return()
     avg_return.plot_average_return(show_plot=False)
     avg_return.save_average_return(avg_return.index_returns)
+
+    # 2.2 方差解释率分析
+    variance_interp = VarianceInterpretation()
+    variance_interp.load_returns_from_config()
+    variance_interp.compute_and_plot()
