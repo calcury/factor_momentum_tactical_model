@@ -6,6 +6,7 @@ from src.task1.cluster_agglomerative import ClusterAgglomerative
 from src.task2.average_return import AverageReturn
 from src.task2.variance_interpret import VarianceInterpretation
 from src.task2.prediction_model import LinePredictionPipeline
+from src.task2.evaluate import PredictionEvaluation
 
 CONFIG_PATH = "config/prediction_model_config.json"
 
@@ -52,7 +53,7 @@ if __name__ == "__main__":
     variance_interp.load_returns_from_config()
     variance_interp.compute_and_plot()
 
-    # 2.2 预测模型
+    # 2.2 - 2.3 预测模型
     pipeline = LinePredictionPipeline.from_config_path()
     cfg_ranges = pipeline.cfg.get("split_ranges")
     pipeline.set_split_ranges(
@@ -62,3 +63,7 @@ if __name__ == "__main__":
     )
     results = pipeline.run_all_markets()
     pipeline.print_results(results)
+
+    # 2.3 评估预测结果
+    evaluator = PredictionEvaluation()
+    evaluator.evaluate()
