@@ -256,7 +256,7 @@ class LinePredictionPipeline:
             feats.append(idx_ret.rolling(w).mean().rename(f"index_mom_{w}"))
 
         full_dataset = pd.concat(feats, axis=1).join(df, how="inner")
-        dataset = full_dataset.dropna()
+        dataset_clean = full_dataset.dropna()  # For train/val, use clean data
         valid_raw_pos = np.where(full_dataset.notna().all(axis=1))[0]
 
         tr_s_v, tr_e_v = self._map_raw_range_to_valid_positions(
@@ -265,13 +265,19 @@ class LinePredictionPipeline:
         va_s_v, va_e_v = self._map_raw_range_to_valid_positions(
             valid_raw_pos, (va_s, va_e), "val"
         )
-        te_s_v, te_e_v = self._map_raw_range_to_valid_positions(
-            valid_raw_pos, (te_s, te_e), "test"
-        )
 
-        tr_df = dataset.iloc[tr_s_v:tr_e_v]
-        val_df = dataset.iloc[va_s_v:va_e_v]
-        te_df = dataset.iloc[te_s_v:te_e_v]
+        # For test: find raw position in original data to preserve last 20 days
+        te_start_idx = np.where(valid_raw_pos >= te_s)[0]
+        if len(te_start_idx) > 0:
+            te_s_raw = int(valid_raw_pos[te_start_idx[0]])
+        else:
+            te_s_raw = te_s
+        te_e_raw = min(len(full_dataset), te_e)
+
+        tr_df = dataset_clean.iloc[tr_s_v:tr_e_v]
+        val_df = dataset_clean.iloc[va_s_v:va_e_v]
+        # Include rows with NaN target_return
+        te_df = full_dataset.iloc[te_s_raw:te_e_raw]
 
         if tr_df.empty or val_df.empty or te_df.empty:
             raise ValueError("train/val/test 中存在空区间，请检查 split_ranges")
@@ -284,9 +290,33 @@ class LinePredictionPipeline:
 
         if is_roll:
             val_pred = self.eval_data(
-                dataset, va_s_v, va_e_v, True, reg_best["params"], win, min_t)
-            te_pred = self.eval_data(
-                dataset, te_s_v, te_e_v, True, reg_best["params"], win, min_t)
+                dataset_clean, va_s_v, va_e_v, True, reg_best["params"], win, min_t)
+
+            # For test set: use fixed model trained on history (train+val) data
+            separate_cols = ["target", "target_return", "next_day_return"]
+            history_feats = [
+                c for c in dataset_clean.columns if c not in separate_cols]
+            history_df = dataset_clean.iloc[:va_e_v]
+
+            Xh = history_df[history_feats].values
+            yh = history_df["target_return"].values
+            valid_mask = ~np.isnan(yh)
+
+            model = Ridge(**reg_best["params"]
+                          ).fit(Xh[valid_mask], yh[valid_mask])
+
+            # Predict on test data (including last 20 days with NaN target_return)
+            X_test = te_df[history_feats].values
+            te_predictions = model.predict(X_test)
+
+            te_pred = pd.DataFrame(
+                {
+                    "target_return": te_df["target_return"],
+                    "pred_target_return": te_predictions,
+                    "next_day_return": te_df["next_day_return"],
+                },
+                index=te_df.index,
+            )
         else:
             val_pred = self.eval_data(val_df, 0, 0, False, reg_best["params"])
             Xtr, ytr, _ = self.get_xy(pd.concat([tr_df, val_df]))

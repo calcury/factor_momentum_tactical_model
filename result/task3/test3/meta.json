@@ -16,7 +16,7 @@
   },
   "prediction_rows": {
     "val": 50,
-    "test": 29
+    "test": 48
   },
-  "final_nav": 122146.59197646216
+  "final_nav": NaN
 }
