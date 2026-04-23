@@ -280,7 +280,7 @@ class LinePredictionPipeline:
         te_df = full_dataset.iloc[te_s_raw:te_e_raw]
 
         if tr_df.empty or val_df.empty or te_df.empty:
-            raise ValueError("train/val/test 中存在空区间，请检查 split_ranges")
+            raise ValueError("train/val/test 中存在空区间")
 
         reg_best = self.train_models(tr_df, val_df)
         roll = self.cfg.get("rolling_oos", {})
@@ -291,8 +291,6 @@ class LinePredictionPipeline:
         if is_roll:
             val_pred = self.eval_data(
                 dataset_clean, va_s_v, va_e_v, True, reg_best["params"], win, min_t)
-
-            # For test set: use fixed model trained on history (train+val) data
             separate_cols = ["target", "target_return", "next_day_return"]
             history_feats = [
                 c for c in dataset_clean.columns if c not in separate_cols]
@@ -305,7 +303,6 @@ class LinePredictionPipeline:
             model = Ridge(**reg_best["params"]
                           ).fit(Xh[valid_mask], yh[valid_mask])
 
-            # Predict on test data (including last 20 days with NaN target_return)
             X_test = te_df[history_feats].values
             te_predictions = model.predict(X_test)
 
@@ -326,6 +323,13 @@ class LinePredictionPipeline:
         val_met = self.calc_metrics(val_pred)
         te_met = self.calc_metrics(te_pred)
 
+        if pd.isna(te_pred.at[te_pred.index[-1], "next_day_return"]):
+            prev_next_day_return = te_pred.at[te_pred.index[-2],
+                                              "next_day_return"]
+            curr_target_return = te_pred.at[te_pred.index[-1],
+                                            "pred_target_return"]
+            new_val = prev_next_day_return * (1 + curr_target_return)
+            te_pred.at[te_pred.index[-1], "next_day_return"] = new_val
         val_pred.to_csv(
             out_dir / out["val_prediction_file"], encoding="utf-8-sig")
         te_pred.to_csv(
@@ -336,9 +340,26 @@ class LinePredictionPipeline:
             (te_pred, "Test", "test_return_compare_plot"),
         ]
         for p_df, title_prefix, fname in plots:
-            plt.figure(figsize=(10, 4))
-            plt.plot(p_df.index, p_df["target_return"], label="actual")
-            plt.plot(p_df.index, p_df["pred_target_return"], label="predicted")
+            h = int(self.cfg["target"]["horizon_days"])
+            idx_ret_plot = returns.mean(axis=1)
+            padding = pd.Series([0] * (h+1))
+            padded_data = pd.concat([idx_ret_plot, padding])
+            target_extended = padded_data.rolling(window=h).sum().shift(-h + 1)
+            target_return_final = target_extended.iloc[:len(idx_ret_plot)]
+            plot_df = p_df.copy()
+            plot_df["target_return"] = target_return_final.reindex(
+                plot_df.index).values
+
+            if pd.isna(plot_df.at[plot_df.index[-1], "next_day_return"]):
+                prev_next_day_return = plot_df.at[plot_df.index[-2],
+                                                  "next_day_return"]
+                curr_target_return = plot_df.at[plot_df.index[-1],
+                                                "target_return"]
+                new_val = prev_next_day_return * (1 + curr_target_return)
+                plot_df.at[plot_df.index[-1], "next_day_return"] = new_val
+            plt.plot(plot_df.index, plot_df["target_return"], label="actual")
+            plt.plot(plot_df.index,
+                     plot_df["pred_target_return"], label="predicted")
             plt.title(f"{name.upper()} {title_prefix}: Pred vs Actual")
             plt.legend()
             plt.grid(alpha=0.3)
