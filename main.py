@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from src.task1.correlation_coefficient import Corr
 from src.task1.feature_analysis import FeatureAnalysis
 from src.task1.cluster_kmeans import ClusterKMeans
@@ -12,6 +14,8 @@ from src.task3.backtesting import Backtesting
 
 CONFIG_PATH = "config/prediction_model_config.json"
 
+for task in ["task1", "task2", "task3"]:
+    Path(f"result/{task}").mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":
 
