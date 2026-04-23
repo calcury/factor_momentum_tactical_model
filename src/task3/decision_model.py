@@ -263,7 +263,7 @@ class FullThrottleEngine:
 
         return pd.DataFrame(history).set_index('Date')
 
-    def plot(self, res, split="val", save=True):
+    def plot(self, res, split="val", save=True, show_plot=False):
         split_upper = split.upper()
         plt.figure(figsize=(14, 7))
         plt.plot(res['NAV'], label='终极进攻策略', color='red', lw=3)
@@ -284,10 +284,11 @@ class FullThrottleEngine:
             plot_name = self.file_names[f"{split}_plot"]
             plt.savefig(self.output_dir / plot_name,
                         dpi=160, bbox_inches="tight")
-        plt.show()
+        if show_plot:
+            plt.show()
         plt.close()
 
-    def plot_weights(self, res, split="val", save=True):
+    def plot_weights(self, res, split="val", save=True, show_plot=False):
         split_upper = split.upper()
         plt.figure(figsize=(14, 6))
         plt.stackplot(
@@ -309,7 +310,8 @@ class FullThrottleEngine:
             plot_name = self.file_names[f"{split}_weight_plot"]
             plt.savefig(self.output_dir / plot_name,
                         dpi=160, bbox_inches="tight")
-        plt.show()
+        if show_plot:
+            plt.show()
         plt.close()
 
     def save_nav(self, res, split="val"):

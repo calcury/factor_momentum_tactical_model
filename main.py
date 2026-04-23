@@ -8,6 +8,8 @@ from src.task2.variance_interpret import VarianceInterpretation
 from src.task2.prediction_model import LinePredictionPipeline
 from src.task2.evaluate import PredictionEvaluation
 
+from src.task3.backtesting import Backtesting
+
 CONFIG_PATH = "config/prediction_model_config.json"
 
 
@@ -54,18 +56,22 @@ if __name__ == "__main__":
     variance_interp.compute_and_plot()
 
     # 2.2 - 2.3 预测模型
-    pipeline = LinePredictionPipeline.from_config_path()
+    # pipeline = LinePredictionPipeline.from_config_path()
 
-    cfg_ranges =
-    pipeline.set_split_ranges(
-        tuple(cfg_ranges["train"]),
-        tuple(cfg_ranges["val"]),
-        tuple(cfg_ranges["test"]),
-    )
+    # cfg_ranges =
+    # pipeline.set_split_ranges(
+    #     tuple(cfg_ranges["train"]),
+    #     tuple(cfg_ranges["val"]),
+    #     tuple(cfg_ranges["test"]),
+    # )
 
-    pipeline.run_all_markets()
-    pipeline.print_results()
+    # pipeline.run_all_markets()
+    # pipeline.print_results()
 
     # 2.3 评估预测结果
     evaluator = PredictionEvaluation()
     evaluator.evaluate()
+
+    # 3 回测决策+对比结果
+    backtesting = Backtesting()
+    backtesting.run_backtesting(show_plot=False)
