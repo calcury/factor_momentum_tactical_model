@@ -5,7 +5,7 @@ from src.task1.cluster_agglomerative import ClusterAgglomerative
 
 from src.task2.average_return import AverageReturn
 from src.task2.variance_interpret import VarianceInterpretation
-from src.task2.prediction_model import LinePredictionPipeline
+# from src.task2.prediction_model import LinePredictionPipeline
 from src.task2.evaluate import PredictionEvaluation
 
 from src.task3.backtesting import Backtesting
