@@ -55,14 +55,16 @@ if __name__ == "__main__":
 
     # 2.2 - 2.3 预测模型
     pipeline = LinePredictionPipeline.from_config_path()
-    cfg_ranges = pipeline.cfg.get("split_ranges")
+
+    cfg_ranges =
     pipeline.set_split_ranges(
         tuple(cfg_ranges["train"]),
         tuple(cfg_ranges["val"]),
-        tuple(cfg_ranges["test"])
+        tuple(cfg_ranges["test"]),
     )
-    results = pipeline.run_all_markets()
-    pipeline.print_results(results)
+
+    pipeline.run_all_markets()
+    pipeline.print_results()
 
     # 2.3 评估预测结果
     evaluator = PredictionEvaluation()

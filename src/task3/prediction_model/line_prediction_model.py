@@ -342,20 +342,12 @@ class LinePredictionPipeline:
         results = []
         for name, data in markets.items():
             results.append(self.run_market(name, data))
-        self.results = results
-
-    def print_results(self):
-        for res in self.results:
-            print(f"=== {res['market']} ===")
-            print(
-                f"Split (Train/Val/Test): {res['split'][0]}/{res['split'][1]}/{res['split'][2]}")
-            print(f"Best Reg Params: {res['reg_params']}")
-            print(f"Strategy Metrics (Val) : {res['val_strategy']}")
-            print(f"Strategy Metrics (Test): {res['test_strategy']}\n")
+        return results
 
 
 if __name__ == "__main__":
-    pipeline = LinePredictionPipeline.from_config_path(CONFIG_PATH)
+    pipeline = LinePredictionPipeline.from_config_path(
+        "line_prediction_model_config.json")
 
     cfg_ranges = pipeline.cfg.get("split_ranges")
     if cfg_ranges is not None:
@@ -370,5 +362,10 @@ if __name__ == "__main__":
             "例如 set_split_ranges((0, 50), (50, 80), (80, None))"
         )
 
-    pipeline.run_all_markets()
-    pipeline.print_results()
+    for res in pipeline.run_all_markets():
+        print(f"=== {res['market']} ===")
+        print(
+            f"Split (Train/Val/Test): {res['split'][0]}/{res['split'][1]}/{res['split'][2]}")
+        print(f"Best Reg Params: {res['reg_params']}")
+        print(f"Strategy Metrics (Val) : {res['val_strategy']}")
+        print(f"Strategy Metrics (Test): {res['test_strategy']}\n")

@@ -1,0 +1,22 @@
+{
+  "name": "test2",
+  "raw_split_ranges": {
+    "train": [
+      50,
+      100
+    ],
+    "val": [
+      100,
+      150
+    ],
+    "test": [
+      150,
+      200
+    ]
+  },
+  "prediction_rows": {
+    "val": 50,
+    "test": 50
+  },
+  "final_nav": 103294.63938571209
+}
