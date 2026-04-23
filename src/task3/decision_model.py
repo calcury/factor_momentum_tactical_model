@@ -265,14 +265,13 @@ class FullThrottleEngine:
 
     def plot(self, res, split="val", save=True, show_plot=False):
         split_upper = split.upper()
-        plt.figure(figsize=(14, 7))
+        plt.figure(figsize=(14, 5))
         plt.plot(res['NAV'], label='终极进攻策略', color='red', lw=3)
 
         compare_nav = self._load_compare_model_nav(split)
         if compare_nav is not None:
             plt.plot(compare_nav, label=self.compare_model_label,
                      color='blue', lw=2.5, alpha=0.9)
-
         plt.plot(res['B_SP'], label='全仓 SP100', alpha=0.4, ls='--')
         plt.plot(res['B_HSI'], label='全仓 HSI', alpha=0.4, ls='--')
         plt.plot(res['B_50'], label='50/50 分仓', alpha=0.6, ls=':')
@@ -290,7 +289,7 @@ class FullThrottleEngine:
 
     def plot_weights(self, res, split="val", save=True, show_plot=False):
         split_upper = split.upper()
-        plt.figure(figsize=(14, 6))
+        plt.figure(figsize=(14, 3))
         plt.stackplot(
             res.index,
             res['SP100_W'],
