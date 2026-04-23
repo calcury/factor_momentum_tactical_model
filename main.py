@@ -5,7 +5,7 @@ from src.task1.cluster_agglomerative import ClusterAgglomerative
 
 from src.task2.average_return import AverageReturn
 from src.task2.variance_interpret import VarianceInterpretation
-# from src.task2.prediction_model import LinePredictionPipeline
+from src.task2 import prediction_model
 from src.task2.evaluate import PredictionEvaluation
 
 from src.task3.backtesting import Backtesting
@@ -56,17 +56,7 @@ if __name__ == "__main__":
     variance_interp.compute_and_plot()
 
     # 2.2 - 2.3 预测模型
-    # pipeline = LinePredictionPipeline.from_config_path()
-
-    # cfg_ranges =
-    # pipeline.set_split_ranges(
-    #     tuple(cfg_ranges["train"]),
-    #     tuple(cfg_ranges["val"]),
-    #     tuple(cfg_ranges["test"]),
-    # )
-
-    # pipeline.run_all_markets()
-    # pipeline.print_results()
+    prediction_model.rolling_predict()
 
     # 2.3 评估预测结果
     evaluator = PredictionEvaluation()
