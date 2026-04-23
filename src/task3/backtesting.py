@@ -49,16 +49,12 @@ class Backtesting():
             print(
                 f"raw split ranges: train={tr_rg}, val={va_rg}, test={te_rg}")
 
-            # 1) 预测模型（按原始 CSV 行号窗口）
             pipeline.set_split_ranges(tr_rg, va_rg, te_rg)
             pred_results = pipeline.run_all_markets()
             for res in pred_results:
                 print(
                     f"[{res['market']}] split={res['split']} reg_params={res['reg_params']}")
 
-            # 2) 决策模型读取 val/test 预测结果后做 test 回测
-            # decision_V2 读取的是 val+test 两段预测，这里为其构造兼容切分：
-            # train 占 1 行占位，test 精确对齐到预测 test 区间。
             sp_val_len, sp_test_len = self._read_pred_len(
                 pipeline.cfg, "sp100")
             hsi_val_len, hsi_test_len = self._read_pred_len(
@@ -87,7 +83,7 @@ class Backtesting():
             decision_engine.plot_weights(
                 result, split="test", save=True, show_plot=show_plot)
 
-            # 保存窗口元信息
+            # 保存窗口信息
             meta = {
                 "name": run_name,
                 "raw_split_ranges": {

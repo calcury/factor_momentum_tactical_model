@@ -29,7 +29,6 @@ class FullThrottleEngine:
         annualization_days = float(risk_cfg.get("annualization_days", 252))
         self.mgmt_fee = annual_mgmt_fee / annualization_days
 
-        # 策略参数，支持通过 config 中的 decision_v2 区块覆盖
         self.momentum_lookback = int(decision_cfg.get("momentum_lookback", 3))
         self.momentum_weight = float(decision_cfg.get("momentum_weight", 0.5))
         self.target_exposure = float(decision_cfg.get("target_exposure", 0.98))
@@ -38,9 +37,6 @@ class FullThrottleEngine:
         self.min_nav_eps = float(decision_cfg.get("min_nav_eps", 1e-12))
 
         output_cfg = self.cfg.get("decision_v2_output", {})
-        self.output_dir = Path(output_cfg.get(
-            "directory", "data/task3/decision_v2"))
-        self.output_dir.mkdir(parents=True, exist_ok=True)
         self.file_names = {
             "train_nav": output_cfg.get("train_nav_file", "train_nav.csv"),
             "val_nav": output_cfg.get("val_nav_file", "val_nav.csv"),
@@ -71,8 +67,7 @@ class FullThrottleEngine:
     @staticmethod
     def _normalize_range(n_total, rg, name):
         if rg is None or len(rg) != 2:
-            raise ValueError(f"{name} 区间必须是长度为 2 的元组/列表，例如 (0, 50)")
-
+            raise ValueError(f"{name} 区间必须是长度为 2 的元组/列表")
         start, end = rg
         if start is None:
             start = 0
@@ -82,21 +77,13 @@ class FullThrottleEngine:
         start = int(start)
         end = int(end)
 
-        if start < 0 or end < 0:
-            raise ValueError(f"{name} 区间不能为负数: {(start, end)}")
-        if start >= end:
-            raise ValueError(f"{name} 区间必须满足 start < end: {(start, end)}")
-        if end > n_total:
-            raise ValueError(f"{name} 区间超出数据范围: {(start, end)}，总长度为 {n_total}")
-
         return start, end
 
     def _resolve_split_ranges(self, n_total, split_ranges=None):
         ranges = split_ranges if split_ranges is not None else self.split_ranges
         if ranges is None:
             raise ValueError(
-                "未提供切分区间。请在初始化时传入 split_ranges，"
-                "或先调用 set_split_ranges(train_range, val_range, test_range)。"
+                "未提供切分区间"
             )
 
         if isinstance(ranges, (list, tuple)) and len(ranges) == 3:
@@ -107,8 +94,7 @@ class FullThrottleEngine:
             test_rg = ranges.get("test")
         else:
             raise ValueError(
-                "split_ranges 格式错误。支持 {'train':(a,b),'val':(c,d),'test':(e,f)} "
-                "或 ((a,b),(c,d),(e,f))"
+                "split_ranges 格式错误"
             )
 
         tr_s, tr_e = self._normalize_range(n_total, train_rg, "train")
@@ -117,7 +103,7 @@ class FullThrottleEngine:
 
         if not (tr_e <= va_s <= va_e <= te_s <= te_e):
             raise ValueError(
-                "区间必须按时间先后且不重叠，要求满足: train_end <= val_start <= val_end <= test_start <= test_end"
+                "区间必须按时间先后且不重叠"
             )
 
         return {
@@ -129,8 +115,6 @@ class FullThrottleEngine:
     def _load_prediction_frame(self, market):
         out_cfg = self.cfg[f"{market}_output"]
         out_dir = Path(out_cfg["directory"])
-
-        # 兼容现有产物：将 val/test 预测拼接后按日期排序，供 tuple 切分。
         val_path = out_dir / out_cfg["val_prediction_file"]
         test_path = out_dir / out_cfg["test_prediction_file"]
         val_df = pd.read_csv(val_path, index_col=0, parse_dates=True)
@@ -192,7 +176,6 @@ class FullThrottleEngine:
         units = {'sp100': 0.0, 'hsi': 0.0}
         history = []
 
-        # 基准组合口径与主策略一致：初始建仓支付佣金，持有期扣管理费
         b_sp = self.initial_capital / (1 + self.comm_rates['sp100'])
         b_hsi = self.initial_capital / (1 + self.comm_rates['hsi'])
         b50_sp = 0.5 * self.initial_capital / (1 + self.comm_rates['sp100'])
@@ -201,34 +184,28 @@ class FullThrottleEngine:
 
         for i, date in enumerate(idx):
             nav = cash + sum(units.values())
-
-            # --- 2. 暴力决策引擎 ---
-            # 计算两者的“进攻潜力”
             potentials = {}
             for asset, df in [('sp100', df_sp), ('hsi', df_hsi)]:
                 pred_r = df.at[date, 'pred_target_return']
-                # 动能过滤：最近 3 天是否在涨
+                # 动能过滤
                 start = max(0, i - self.momentum_lookback)
                 mom = df['target_return'].iloc[start:i].sum()
                 potentials[asset] = pred_r + \
                     (mom * self.momentum_weight)  # 预测 + 动能补偿
 
-            # 确定目标：谁强买谁，且必须满仓
+            # 谁强买谁
             best_asset = max(potentials, key=lambda x: potentials[x])
 
             target_weights = {'sp100': 0.0, 'hsi': 0.0}
             if potentials[best_asset] > 0:
-                target_weights[best_asset] = self.target_exposure  # 满仓出击
+                target_weights[best_asset] = self.target_exposure
             else:
-                # 如果两个都在跌，空仓避险（这是赢过全仓的关键！）
+                # 两个都在跌，空仓避险
                 target_weights = {'sp100': 0.0, 'hsi': 0.0}
 
-            # --- 3. 极速调仓 (修正后的 units 逻辑) ---
             for asset in ['sp100', 'hsi']:
                 curr_w = units[asset] / nav if nav > self.min_nav_eps else 0.0
                 tw = target_weights[asset]
-
-                # 只有当目标发生根本性改变（如换赛道）才交易，节省佣金
                 if abs(tw - curr_w) > self.rebalance_threshold:
                     target_val = np.floor(nav * tw)
                     diff = target_val - units[asset]
@@ -241,7 +218,6 @@ class FullThrottleEngine:
                         cash += (abs(diff) - fee)
                         units[asset] += diff
 
-            # --- 4. 结算 ---
             nav_after_trade = cash + sum(units.values())
             sp_w = units['sp100'] / \
                 nav_after_trade if nav_after_trade > self.min_nav_eps else 0.0
@@ -266,7 +242,7 @@ class FullThrottleEngine:
     def plot(self, res, split="val", save=True, show_plot=False):
         split_upper = split.upper()
         plt.figure(figsize=(14, 5))
-        plt.plot(res['NAV'], label='终极进攻策略', color='red', lw=3)
+        plt.plot(res['NAV'], label='FMTM', color='red', lw=3)
 
         compare_nav = self._load_compare_model_nav(split)
         if compare_nav is not None:
@@ -330,8 +306,7 @@ if __name__ == "__main__":
         )
     elif engine.split_ranges is None:
         raise ValueError(
-            "请为 FullThrottleEngine 提供 split_ranges，"
-            "例如 set_split_ranges((0, 50), (50, 80), (80, None))"
+            "请为 FullThrottleEngine 提供 split_ranges"
         )
 
     for split in ["train", "val", "test"]:

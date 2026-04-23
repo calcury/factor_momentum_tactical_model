@@ -225,7 +225,6 @@ class LinePredictionPipeline:
         )
         df["target"] = (df["target_return"] > thresh).astype(int)
 
-        # 切分区间按原始 CSV 行号解释。
         n_total = len(returns)
         resolved_ranges = self._resolve_split_ranges(n_total, split_ranges)
         tr_s, tr_e = resolved_ranges["train"]
@@ -266,7 +265,6 @@ class LinePredictionPipeline:
             valid_raw_pos, (va_s, va_e), "val"
         )
 
-        # For test: find raw position in original data to preserve last 20 days
         te_start_idx = np.where(valid_raw_pos >= te_s)[0]
         if len(te_start_idx) > 0:
             te_s_raw = int(valid_raw_pos[te_start_idx[0]])
@@ -276,7 +274,6 @@ class LinePredictionPipeline:
 
         tr_df = dataset_clean.iloc[tr_s_v:tr_e_v]
         val_df = dataset_clean.iloc[va_s_v:va_e_v]
-        # Include rows with NaN target_return
         te_df = full_dataset.iloc[te_s_raw:te_e_raw]
 
         if tr_df.empty or val_df.empty or te_df.empty:
